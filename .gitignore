@@ -1,0 +1,8 @@
+/Verilog
+/out
+/.bloop
+/.metals
+/.vscode
+/gen
+config.json
+inst.*

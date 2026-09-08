@@ -8,28 +8,65 @@ import common.axi._
 import common.ToZero
 
 
-class XCMAC (BOARD: String="u280", PORT: Int = 0, IP_CORE_NAME: String="CMACBlackBox") extends RawModule{
-    require (Set("u50", "u280") contains BOARD)
+class XCMAC (BOARD: String="u200", PORT: Int = 0, IP_CORE_NAME: String="CMACBlackBox") extends RawModule{
+    require (Set("u50", "u200") contains BOARD)
 	
 	def getTCL() = {
+        val (core_select, gt_group, lane1, lane2, lane3, lane4) =
+        (BOARD, PORT) match {
+
+            case ("u200", 0) =>
+                (
+                    "CMACE4_X0Y8",
+                    "X1Y48~X1Y51",
+                    "X1Y48",
+                    "X1Y49",
+                    "X1Y50",
+                    "X1Y51"
+                )
+
+            case ("u200", 1) =>
+                (
+                    "CMACE4_X0Y6",
+                    "X1Y44~X1Y47",
+                    "X1Y44",
+                    "X1Y45",
+                    "X1Y46",
+                    "X1Y47"
+                )
+
+            case ("u50", _) =>
+                (
+                    "CMACE4_X0Y3",
+                    "X0Y28~X0Y31",
+                    "X0Y28",
+                    "X0Y29",
+                    "X0Y30",
+                    "X0Y31"
+                )
+
+            case _ =>
+                require(false, "Invalid board and port pair for XCMAC!")
+                ("", "", "", "", "", "")
+        }
         val board_inf = (BOARD, PORT) match {
-            case ("u280", 0) => "qsfp0_4x"
-            case ("u280", 1) => "qsfp1_4x"
+            case ("u200", 0) => "qsfp0_4x"
+            case ("u200", 1) => "qsfp1_4x"
             case ("u50", _) => "qsfp_4x"
             case default => require(false, "Invalid board and port pair for XCMAC!")
         }
         val diff_clk_inf = (BOARD, PORT) match {
-            case ("u280", 0) => "qsfp0_156mhz"
-            case ("u280", 1) => "qsfp1_156mhz"
+            case ("u200", 0) => "qsfp0_156mhz"
+            case ("u200", 1) => "qsfp1_156mhz"
             case ("u50", _) => "qsfp_161mhz"
             case default => require(false, "Invalid board and port pair for XCMAC!")
         }
         val ref_clk_freq = BOARD match {
-            case "u280" => "156.25"
+            case "u200" => "156.25"
             case "u50" => "161.1328125"
         }
 		val s1 = f"create_ip -name cmac_usplus -vendor xilinx.com -library ip -version 3.1 -module_name ${IP_CORE_NAME}\n"
-		val s2 = f"set_property -dict [list CONFIG.CMAC_CAUI4_MODE {1} CONFIG.NUM_LANES {4x25} CONFIG.GT_REF_CLK_FREQ {${ref_clk_freq}} CONFIG.USER_INTERFACE {AXIS} CONFIG.TX_FLOW_CONTROL {0} CONFIG.RX_FLOW_CONTROL {0} CONFIG.CMAC_CORE_SELECT {CMACE4_X0Y6} CONFIG.GT_GROUP_SELECT {X0Y40~X0Y43} CONFIG.LANE1_GT_LOC {X0Y40} CONFIG.LANE2_GT_LOC {X0Y41} CONFIG.LANE3_GT_LOC {X0Y42} CONFIG.LANE4_GT_LOC {X0Y43} CONFIG.LANE5_GT_LOC {NA} CONFIG.LANE6_GT_LOC {NA} CONFIG.LANE7_GT_LOC {NA} CONFIG.LANE8_GT_LOC {NA} CONFIG.LANE9_GT_LOC {NA} CONFIG.LANE10_GT_LOC {NA} CONFIG.RX_GT_BUFFER {1} CONFIG.GT_RX_BUFFER_BYPASS {0} CONFIG.ETHERNET_BOARD_INTERFACE {${board_inf}} CONFIG.DIFFCLK_BOARD_INTERFACE {${diff_clk_inf}} CONFIG.Component_Name {CMACBlackBox}] [get_ips ${IP_CORE_NAME}]\n"
+		val s2 = f"set_property -dict [list CONFIG.CMAC_CAUI4_MODE {1} CONFIG.NUM_LANES {4x25} CONFIG.GT_REF_CLK_FREQ {${ref_clk_freq}} CONFIG.USER_INTERFACE {AXIS} CONFIG.TX_FLOW_CONTROL {0} CONFIG.RX_FLOW_CONTROL {0} CONFIG.CMAC_CORE_SELECT {${core_select}} CONFIG.GT_GROUP_SELECT {${gt_group}} CONFIG.LANE1_GT_LOC {${lane1}} CONFIG.LANE2_GT_LOC {${lane2}} CONFIG.LANE3_GT_LOC {${lane3}} CONFIG.LANE4_GT_LOC {${lane4}} CONFIG.LANE5_GT_LOC {NA} CONFIG.LANE6_GT_LOC {NA} CONFIG.LANE7_GT_LOC {NA} CONFIG.LANE8_GT_LOC {NA} CONFIG.LANE9_GT_LOC {NA} CONFIG.LANE10_GT_LOC {NA} CONFIG.RX_GT_BUFFER {1} CONFIG.GT_RX_BUFFER_BYPASS {0} CONFIG.ETHERNET_BOARD_INTERFACE {${board_inf}} CONFIG.DIFFCLK_BOARD_INTERFACE {${diff_clk_inf}} CONFIG.Component_Name {${IP_CORE_NAME}}] [get_ips ${IP_CORE_NAME}]\n"
 		println(s1 + s2)
 	}
 
@@ -39,6 +76,7 @@ class XCMAC (BOARD: String="u280", PORT: Int = 0, IP_CORE_NAME: String="CMACBlac
 
 		val net_clk 	    = Output(Clock())
 		val net_rstn	    = Output(Bool())
+        val stat_rx_aligned = Output(Bool())
 
         val drp_clk         = Input(Clock())
 		val user_clk	    = Input(Clock())
@@ -75,11 +113,11 @@ class XCMAC (BOARD: String="u280", PORT: Int = 0, IP_CORE_NAME: String="CMACBlac
     val tx_clk                      = Wire(Clock())
     val rx_clk                      = Wire(Clock())
 
-    io.net_clk                      := tx_clk
+    io.net_clk                := tx_clk
+    io.stat_rx_aligned        := cmac_inst.io.stat_rx_aligned.asBool
 
     withClockAndReset(tx_clk,(rx_rst | tx_rst)){
-        val net_rstn                   = Reg(UInt(1.W))
-        net_rstn                       := RegNext(!(rx_rst | tx_rst))
+        val net_rstn = RegNext(!(rx_rst || tx_rst), false.B)
         io.net_rstn                     := net_rstn
 
         val sIDLE :: sGT_LOCK :: sWAIT_RX_ALIGNED :: sPKG_TRANS_INIT :: Nil = Enum(4)
@@ -128,13 +166,70 @@ class XCMAC (BOARD: String="u280", PORT: Int = 0, IP_CORE_NAME: String="CMACBlac
                 ctl_tx_send_rfi_r   := 0.U
                 ctl_tx_enable_r     := 1.U
                 when(stat_rx_aligned_1d === 0.U){
-                    rx_state        := sIDLE
+                    tx_state        := sIDLE
                 }
             }
         }
         cmac_inst.io.ctl_rx_enable       := ctl_rx_enable_r
         cmac_inst.io.ctl_tx_enable       := ctl_tx_enable_r
         cmac_inst.io.ctl_tx_send_rfi     := ctl_tx_send_rfi_r
+
+        //---ILA---
+        if(PORT == 0){
+            class ila_cmac0_rx_debug(seq: Seq[Data]) extends BaseILA(seq)
+            val mod_cmac0_rx_debug = Module(new ila_cmac0_rx_debug(Seq(
+                rx_state,
+                ctl_rx_enable_r,
+                stat_rx_aligned_1d,
+
+                cmac_inst.io.usr_rx_reset,
+                cmac_inst.io.stat_rx_aligned,
+
+                cmac_inst.io.rx_axis_tvalid,
+                cmac_inst.io.rx_axis_tlast,
+                cmac_inst.io.rx_axis_tkeep,
+                cmac_inst.io.rx_axis_tdata
+            )))
+            mod_cmac0_rx_debug.connect(tx_clk)
+            class ila_cmac0_tx_axis_debug(seq: Seq[Data]) extends BaseILA(seq)
+            val mod_cmac0_tx_axis_debug = Module(new ila_cmac0_tx_axis_debug(Seq(
+                ctl_tx_enable_r,
+                cmac_inst.io.tx_axis_tvalid,
+                cmac_inst.io.tx_axis_tready,
+                cmac_inst.io.tx_axis_tlast,
+                cmac_inst.io.tx_axis_tkeep,
+                cmac_inst.io.tx_axis_tdata
+            )))
+            mod_cmac0_tx_axis_debug.connect(tx_clk)
+        }
+
+		// CMAC1/QSFP1 TX feeds CMAC0/QSFP0 RX through the external cable.
+		// Generate this monitor for PORT 1 only so its module/IP name is unique.
+		if(PORT == 1){
+			class ila_cmac1_tx_axis_debug(seq: Seq[Data]) extends BaseILA(seq)
+			val mod_cmac1_tx_axis_debug = Module(new ila_cmac1_tx_axis_debug(Seq(
+				ctl_tx_enable_r,
+				cmac_inst.io.tx_axis_tvalid,
+				cmac_inst.io.tx_axis_tready,
+				cmac_inst.io.tx_axis_tlast,
+				cmac_inst.io.tx_axis_tkeep,
+                cmac_inst.io.tx_axis_tdata
+			)))
+			mod_cmac1_tx_axis_debug.connect(tx_clk)
+            class ila_cmac1_rx_debug(seq: Seq[Data]) extends BaseILA(seq)
+            val mod_cmac1_rx_debug = Module(new ila_cmac1_rx_debug(Seq(
+                rx_state,
+                ctl_rx_enable_r,
+                stat_rx_aligned_1d,
+                cmac_inst.io.usr_rx_reset,
+                cmac_inst.io.stat_rx_aligned,
+                cmac_inst.io.rx_axis_tvalid,
+                cmac_inst.io.rx_axis_tlast,
+                cmac_inst.io.rx_axis_tkeep,
+                cmac_inst.io.rx_axis_tdata
+            )))
+            mod_cmac1_rx_debug.connect(tx_clk)
+		}
     } 
 
 
@@ -224,7 +319,7 @@ class Frame_Padding_512 extends Module{
 
 	switch(state){
 		is(sIDLE){
-			when(io.data_in.fire()){
+			when(io.data_in.fire){
 				io.data_out.valid		:= 1.U
 				io.data_out.bits 		:= io.data_in.bits
                 io.data_out.bits.keep   := "hffffffffffffffff".U
@@ -236,7 +331,7 @@ class Frame_Padding_512 extends Module{
 			}
 		}
 		is(sREAD_DATA){
-			when(io.data_in.fire()){
+			when(io.data_in.fire){
 				io.data_out.valid		:= 1.U
 				io.data_out.bits 		:= io.data_in.bits
 				when(io.data_in.bits.last === 1.U){

@@ -8,3 +8,11 @@ config.json
 inst.*
 __pycache__/
 *.pyc
+
+# verification / results artifacts
+/verification/
+/results/
+/.Xil/
+/cmac/out/
+/cmac/tb/
+hotloading_chunk.xdc

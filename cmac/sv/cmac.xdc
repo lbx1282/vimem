@@ -1,14 +1,29 @@
-set_property PACKAGE_PIN D32 [get_ports led]
-set_property IOSTANDARD  LVCMOS18 [get_ports led]
+# ==========================================================
+# U200 general-purpose SI570 system clock - 156.25 MHz
+# ==========================================================
 
-create_clock -name sys_100M_clock_0 -period 10 -add [get_ports sys_100M_0_p]
+set_property PACKAGE_PIN AU19 [get_ports sys_100M_0_p]
+set_property PACKAGE_PIN AV19 [get_ports sys_100M_0_n]
 
-set_property PACKAGE_PIN BJ43 [get_ports sys_100M_0_p]
-set_property PACKAGE_PIN BJ44 [get_ports sys_100M_0_n]
-set_property IOSTANDARD  DIFF_SSTL12 [get_ports sys_100M_0_p]
-set_property IOSTANDARD  DIFF_SSTL12 [get_ports sys_100M_0_n]
+set_property IOSTANDARD LVDS [get_ports sys_100M_0_p]
+set_property IOSTANDARD LVDS [get_ports sys_100M_0_n]
 
-set_false_path -from [get_clocks -of_objects [get_pins -hier -filter {NAME =~ */gtye4_channel_gen.gen_gtye4_channel_inst[*].GTYE4_CHANNEL_PRIM_INST/RXOUTCLK}]] -to [get_clocks -of_objects [get_pins -hier -filter {NAME =~ */gtye4_channel_gen.gen_gtye4_channel_inst[*].GTYE4_CHANNEL_PRIM_INST/TXOUTCLK}]]
+create_clock -period 6.400 \
+    -name sys_clk_156M25 \
+    [get_ports sys_100M_0_p]
+
+
+# ==========================================================
+# Status LED0
+# ==========================================================
+
+set_property PACKAGE_PIN BC21 [get_ports led]
+set_property IOSTANDARD LVCMOS12 [get_ports led]
+
+set_clock_groups -asynchronous \
+    -group [get_clocks -include_generated_clocks sys_clk_156M25] \
+    -group [get_clocks -include_generated_clocks cmac0_pin_gt_clk_p] \
+    -group [get_clocks -include_generated_clocks cmac1_pin_gt_clk_p]
 
 # Enable if you import HBM and CMAC at the same time
 

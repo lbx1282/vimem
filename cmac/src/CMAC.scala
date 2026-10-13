@@ -8,7 +8,7 @@ import common.axi._
 import common.ToZero
 
 
-class XCMAC (BOARD: String="u200", PORT: Int = 0, IP_CORE_NAME: String="CMACBlackBox") extends RawModule{
+class XCMAC (BOARD: String="u200", PORT: Int = 0, IP_CORE_NAME: String="CMACBlackBox", ENABLE_DEBUG: Boolean = false) extends RawModule{
     require (Set("u50", "u200") contains BOARD)
 	
 	def getTCL() = {
@@ -175,22 +175,22 @@ class XCMAC (BOARD: String="u200", PORT: Int = 0, IP_CORE_NAME: String="CMACBlac
         cmac_inst.io.ctl_tx_send_rfi     := ctl_tx_send_rfi_r
 
         //---ILA---
-        if(PORT == 0){
-            class ila_cmac0_rx_debug(seq: Seq[Data]) extends BaseILA(seq)
-            val mod_cmac0_rx_debug = Module(new ila_cmac0_rx_debug(Seq(
-                rx_state,
-                ctl_rx_enable_r,
-                stat_rx_aligned_1d,
+        if(PORT == 0 && ENABLE_DEBUG){
+            // class ila_cmac0_rx_debug(seq: Seq[Data]) extends BaseILA(seq)
+            // val mod_cmac0_rx_debug = Module(new ila_cmac0_rx_debug(Seq(
+            //     rx_state,
+            //     ctl_rx_enable_r,
+            //     stat_rx_aligned_1d,
 
-                cmac_inst.io.usr_rx_reset,
-                cmac_inst.io.stat_rx_aligned,
+            //     cmac_inst.io.usr_rx_reset,
+            //     cmac_inst.io.stat_rx_aligned,
 
-                cmac_inst.io.rx_axis_tvalid,
-                cmac_inst.io.rx_axis_tlast,
-                cmac_inst.io.rx_axis_tkeep,
-                cmac_inst.io.rx_axis_tdata
-            )))
-            mod_cmac0_rx_debug.connect(tx_clk)
+            //     cmac_inst.io.rx_axis_tvalid,
+            //     cmac_inst.io.rx_axis_tlast,
+            //     cmac_inst.io.rx_axis_tkeep,
+            //     cmac_inst.io.rx_axis_tdata
+            // )))
+            // mod_cmac0_rx_debug.connect(tx_clk)
             class ila_cmac0_tx_axis_debug(seq: Seq[Data]) extends BaseILA(seq)
             val mod_cmac0_tx_axis_debug = Module(new ila_cmac0_tx_axis_debug(Seq(
                 ctl_tx_enable_r,
@@ -205,17 +205,17 @@ class XCMAC (BOARD: String="u200", PORT: Int = 0, IP_CORE_NAME: String="CMACBlac
 
 		// CMAC1/QSFP1 TX feeds CMAC0/QSFP0 RX through the external cable.
 		// Generate this monitor for PORT 1 only so its module/IP name is unique.
-		if(PORT == 1){
-			class ila_cmac1_tx_axis_debug(seq: Seq[Data]) extends BaseILA(seq)
-			val mod_cmac1_tx_axis_debug = Module(new ila_cmac1_tx_axis_debug(Seq(
-				ctl_tx_enable_r,
-				cmac_inst.io.tx_axis_tvalid,
-				cmac_inst.io.tx_axis_tready,
-				cmac_inst.io.tx_axis_tlast,
-				cmac_inst.io.tx_axis_tkeep,
-                cmac_inst.io.tx_axis_tdata
-			)))
-			mod_cmac1_tx_axis_debug.connect(tx_clk)
+		if(PORT == 1 && ENABLE_DEBUG){
+			// class ila_cmac1_tx_axis_debug(seq: Seq[Data]) extends BaseILA(seq)
+			// val mod_cmac1_tx_axis_debug = Module(new ila_cmac1_tx_axis_debug(Seq(
+			// 	ctl_tx_enable_r,
+			// 	cmac_inst.io.tx_axis_tvalid,
+			// 	cmac_inst.io.tx_axis_tready,
+			// 	cmac_inst.io.tx_axis_tlast,
+			// 	cmac_inst.io.tx_axis_tkeep,
+            //     cmac_inst.io.tx_axis_tdata
+			// )))
+            // mod_cmac1_tx_axis_debug.connect(tx_clk)
             class ila_cmac1_rx_debug(seq: Seq[Data]) extends BaseILA(seq)
             val mod_cmac1_rx_debug = Module(new ila_cmac1_rx_debug(Seq(
                 rx_state,

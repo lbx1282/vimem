@@ -1,6 +1,7 @@
 package cmac
 
 import chisel3.stage.ChiselStage
+import generator._
 
 object elaborate extends App {
 

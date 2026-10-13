@@ -43,6 +43,7 @@ case class TestMetadataAnno(
 
 	val isAppend = width==1
 	val moduleName = target.circuit
+	new File("gen").mkdirs()
 	val	f_print = new PrintWriter(new FileOutputStream(new File("gen/"+moduleName+".print"), isAppend))
 	
 	val s = f"//Report width ${width}:"

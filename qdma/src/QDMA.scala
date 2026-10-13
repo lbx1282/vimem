@@ -57,22 +57,33 @@ class QDMA[T <: Module with BaseTLB](
 	BRIDGE_BAR_SCALE	: String="Gigabytes",
 	BRIDGE_BAR_SIZE		: Int=1
 ) extends RawModule{
-	require (Set("202001", "202002", "202101") contains VIVADO_VERSION)
+	require (Set("202001", "202002", "202101", "202501") contains VIVADO_VERSION)
 	require (Set(8, 16) contains PCIE_WIDTH)
 	require (Set("Megabytes", "Gigabytes") contains BRIDGE_BAR_SCALE)
 	def getTCL() = {
-		val s1 = "\ncreate_ip -name qdma -vendor xilinx.com -library ip -version 4.0 -module_name QDMABlackBox\n"
-		var s2 = "set_property -dict [list CONFIG.Component_Name {QDMABlackBox} CONFIG.mode_selection {Advanced} CONFIG.axist_bypass_en {true} CONFIG.pcie_extended_tag {false} CONFIG.pcie_blk_locn {PCIE4C_X1Y0} "
+		val ipVersion = VIVADO_VERSION match {
+			case "202001" | "202002" | "202101" => "4.0"
+			case "202501"                       => "5.1"
+		}
+		val pcieLoc = VIVADO_VERSION match {
+			case "202001" | "202002" | "202101" => "PCIE4C_X1Y0"
+			case "202501"                       => "X1Y2"
+		}
+		val s1 = "\ncreate_ip -name qdma -vendor xilinx.com -library ip " +
+			s"-version $ipVersion -module_name QDMABlackBox\n"
+		var s2 = "set_property -dict [list " +
+			"CONFIG.Component_Name {QDMABlackBox} " +
+			"CONFIG.mode_selection {Advanced} " +
+			"CONFIG.axist_bypass_en {true} " +
+			"CONFIG.pcie_extended_tag {false} " +
+			s"CONFIG.pcie_blk_locn {$pcieLoc} "
 		if (VIVADO_VERSION == "202001") {
 			s2 = s2 + "CONFIG.dsc_bypass_rd {true} CONFIG.dsc_bypass_wr {true} "
 		} else {
 			s2 = s2 + "CONFIG.dsc_byp_mode {Descriptor_bypass_and_internal} "
 		}
-		if (PCIE_WIDTH == 16) {
-			s2 = s2 + "CONFIG.pl_link_cap_max_link_speed {8.0_GT/s} CONFIG.pl_link_cap_max_link_width {X16} "
-		} else {
-			s2 = s2 + "CONFIG.pl_link_cap_max_link_speed {16.0_GT/s} CONFIG.pl_link_cap_max_link_width {X8} "
-		}
+		s2 = s2 + "CONFIG.pl_link_cap_max_link_speed {8.0_GT/s} " +
+			s"CONFIG.pl_link_cap_max_link_width {X${PCIE_WIDTH}} "
 		if (SLAVE_BRIDGE == true) {
 			s2 = s2 + "CONFIG.en_bridge_slv {true} CONFIG.csr_axilite_slave {false} CONFIG.axibar_notranslate {true} "
 		}
@@ -175,7 +186,7 @@ class QDMA[T <: Module with BaseTLB](
 	ToZero(axil.w.bits)
 	axil.w.bits.last	:= 1.U
 
-	axil2reg.io.axi <> XAXIConverter(axil, io.pcie_clk,!io.pcie_arstn,io.user_clk,!io.user_arstn)
+	axil2reg.io.axi <> XAXIConverter(axil, io.pcie_clk,io.pcie_arstn,io.user_clk,io.user_arstn)
 
 	//all refer to c2h
 	val boundary_split = withClockAndReset(io.user_clk,!io.user_arstn){Module(new DataBoundarySplit)}

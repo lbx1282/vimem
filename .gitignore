@@ -6,3 +6,5 @@
 /gen
 config.json
 inst.*
+__pycache__/
+*.pyc

@@ -32,6 +32,17 @@ object common extends ScalaModule{
 	def mainClass = Some("common.elaborate")
 }
 
+object generator extends ScalaModule{
+	override def scalaVersion = "2.13.7"
+	override def scalacOptions = Setting.scalacOptions
+	override def scalacPluginIvyDeps = Setting.scalacPluginIvyDeps
+	override def ivyDeps = Agg(
+		ivy"edu.berkeley.cs::chisel3:3.5.0",
+	)
+	def moduleDeps = Seq(common)
+	def mainClass = Some("generator.elaborate")
+}
+
 object qdma extends ScalaModule{
 	override def scalaVersion = "2.13.7"
 	override def scalacOptions = Setting.scalacOptions
@@ -63,7 +74,7 @@ object cmac extends ScalaModule{
 		ivy"edu.berkeley.cs::chisel3:3.5.0",
 	)
   
-	def moduleDeps = Seq(common)
+	def moduleDeps = Seq(common, generator)
 	def mainClass = Some("cmac.elaborate")
 }
 
@@ -125,6 +136,6 @@ object mini extends ScalaModule{
 		ivy"edu.berkeley.cs::chisel3:3.5.0",
 		
 	)
-	def moduleDeps = Seq(common, qdma, hbm)
+	def moduleDeps = Seq(common, generator, qdma, hbm, cmac)
 	def mainClass = Some("mini.elaborate")
 }

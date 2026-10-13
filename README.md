@@ -5,6 +5,6 @@ The main part is in `foo/src`, which connects RISC-V mini core, QDMA and HBM. Th
 How to build:
 
 ``` shell
-mill foo AlveoDynamicTop    # build the project
-python3 postElaborating.py foo AlveoDynamicTop -t -p
+mill mini AlveoDynamicTop    # build the project
+python3 postElaborating.py mini AlveoDynamicTop -t -p
 ```
